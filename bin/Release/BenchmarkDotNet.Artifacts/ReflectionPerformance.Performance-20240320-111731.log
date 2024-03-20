@@ -1,0 +1,22 @@
+// Validating benchmarks:
+// Benchmark Performance.RegularProperty: DefaultJob
+//    * Benchmarked method `RegularProperty` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
+// Benchmark Performance.Reflection: DefaultJob
+//    * Benchmarked method `Reflection` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
+// Benchmark Performance.ReflectionWitchCachedPropertyInfo: DefaultJob
+//    * Benchmarked method `ReflectionWitchCachedPropertyInfo` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
+// Benchmark Performance.CompiledExpression: DefaultJob
+//    * Benchmarked method `CompiledExpression` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
+// Benchmark Performance.CachedCompiledExpression: DefaultJob
+//    * Benchmarked method `CachedCompiledExpression` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
+// Benchmark Performance.Delegate: DefaultJob
+//    * Benchmarked method `Delegate` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
+// Benchmark Performance.CachedDelegate: DefaultJob
+//    * Benchmarked method `CachedDelegate` is static. Benchmarks MUST be instance methods, static methods are not supported.
+
