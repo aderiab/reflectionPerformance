@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Linq.Expressions;
-using System.Text;
+using System.Reflection;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 
 namespace ReflectionPerformance;
@@ -14,276 +15,170 @@ public class Program
     }
 }
 
+[SimpleJob(RuntimeMoniker.Net48)]
 public class Performance
 {
-    public static readonly Person Person = new() { Name = "John" };
-    private static readonly int N = 100000;
+    private Person _person;
+    private PropertyInfo _cachedProperty;
+    private Func<Person, object> _cachedExpressionGetter;
+    private Action<Person, string> _cachedExpressionSetter;
+    private Delegate _cachedDelegateGetter;
+    private Action<Person, string> _cachedDelegateSetter;
 
-    private static void RegularPropertyGet(Person p)
+    [GlobalSetup]
+    public void GlobalSetup()
     {
-        var sb = new StringBuilder();
+        _person = new() { Name = "John" };
+        _cachedProperty = typeof(Person).GetProperty(nameof(Person.Name));
 
-        for (var i = 0; i < N; i++)
         {
-            sb.AppendLine(p.Name);
+            var arg = Expression.Parameter(typeof(Person), "x");
+            Expression expr = Expression.Property(arg, nameof(Person.Name));
+            _cachedExpressionGetter = Expression.Lambda<Func<Person, object>>(expr, arg).Compile();
         }
-    }
 
-    private static void RegularPropertySet(Person p)
-    {
-        for (var i = 0; i < N; i++)
-        {
-            p.Name = "Bob" + i;
-        }
-    }
-
-    private static void ReflectionGet(Person p)
-    {
-        var sb = new StringBuilder();
-
-        for (var i = 0; i < N; i++)
-        {
-            var property = p.GetType().GetProperty("Name");
-
-            sb.AppendLine(property?.GetValue(p, null).ToString());
-        }
-    }
-
-    private static void ReflectionSet(Person p)
-    {
-        for (var i = 0; i < N; i++)
-        {
-            var property = p.GetType().GetProperty("Name");
-            property?.SetValue(p, "Bob" + i);
-        }
-    }
-
-    private static void ReflectionWitchCachedPropertyInfoGet(Person p)
-    {
-        var property = p.GetType().GetProperty("Name");
-        var sb = new StringBuilder();
-        for (var i = 0; i < N; i++)
-        {
-            sb.AppendLine(property?.GetValue(p, null).ToString());
-        }
-    }
-
-    private static void ReflectionWitchCachedPropertyInfoSet(Person p)
-    {
-        var property = p.GetType().GetProperty("Name");
-        for (var i = 0; i < N; i++)
-        {
-            property?.SetValue(p, "Bob" + i);
-        }
-    }
-
-    private static void CompiledExpressionGet(Person p)
-    {
-        var sb = new StringBuilder();
-
-        for (var i = 0; i < N; i++)
-        {
-            var arg = Expression.Parameter(p.GetType(), "x");
-            Expression expr = Expression.Property(arg, "Name");
-            var propertyResolver = Expression.Lambda<Func<Person, object>>(expr, arg).Compile();
-            sb.AppendLine(propertyResolver(p).ToString());
-        }
-    }
-
-    private static void CompiledExpressionSet(Person p)
-    {
-        for (var i = 0; i < N; i++)
         {
             var arg = Expression.Parameter(typeof(Person));
-            Expression expr = Expression.Property(arg, "Name");
+            Expression expr = Expression.Property(arg, nameof(Person.Name));
             var get = Expression.Lambda<Func<Person, string>>(expr, arg);
             var member = get.Body;
             var param = Expression.Parameter(typeof(string), "value");
-            var setter = Expression
+            _cachedExpressionSetter = Expression
                 .Lambda<Action<Person, string>>(Expression.Assign(member, param), get.Parameters[0], param)
                 .Compile();
-            setter(p, "Bob" + i);
         }
-    }
 
-    private static void CachedCompiledExpressionGet(Person p)
-    {
-        var sb = new StringBuilder();
-
-        var arg = Expression.Parameter(p.GetType(), "x");
-        Expression expr = Expression.Property(arg, "Name");
-
-        var propertyResolver = Expression.Lambda<Func<Person, object>>(expr, arg).Compile();
-
-        for (var i = 0; i < N; i++)
         {
-            sb.AppendLine(propertyResolver(p).ToString());
+            var arg = Expression.Parameter(typeof(Person), "x");
+            Expression expr = Expression.Property(arg, nameof(Person.Name));
+            _cachedDelegateGetter = Expression.Lambda(expr, arg).Compile();
         }
-    }
 
-    private static void CachedCompiledExpressionSet(Person p)
-    {
-        var arg = Expression.Parameter(typeof(Person));
-        Expression expr = Expression.Property(arg, "Name");
-        var get = Expression.Lambda<Func<Person, string>>(expr, arg);
-        var member = get.Body;
-        var param = Expression.Parameter(typeof(string), "value");
-        var setter = Expression
-            .Lambda<Action<Person, string>>(Expression.Assign(member, param), get.Parameters[0], param)
-            .Compile();
-
-        for (var i = 0; i < N; i++)
-        {
-            setter(p, "Bob" + i);
-        }
-    }
-
-    private static void DelegateGet(Person p)
-    {
-        for (var i = 0; i < N; i++)
-        {
-            var sb = new StringBuilder();
-
-            var arg = Expression.Parameter(p.GetType(), "x");
-            Expression expr = Expression.Property(arg, "Name");
-
-            var propertyResolver = Expression.Lambda(expr, arg).Compile();
-
-            sb.AppendLine(((Func<Person, object>) propertyResolver)(p).ToString());
-        }
-    }
-
-    private static void DelegateSet(Person p)
-    {
-        for (var i = 0; i < N; i++)
         {
             var arg = Expression.Parameter(typeof(Person));
-            Expression expr = Expression.Property(arg, "Name");
+            Expression expr = Expression.Property(arg, nameof(Person.Name));
             var get = Expression.Lambda<Func<Person, string>>(expr, arg);
             var member = get.Body;
             var param = Expression.Parameter(typeof(string), "value");
-            var setter = Expression
+            _cachedDelegateSetter = Expression
                 .Lambda<Action<Person, string>>(Expression.Assign(member, param), get.Parameters[0], param)
                 .Compile();
-
-            ((Action<Person, string>)setter)(p, "Bob" + i);
-        }
-    }
-
-    private static void CachedDelegateGet(Person p)
-    {
-        StringBuilder sb = new StringBuilder();
-
-        ParameterExpression arg = Expression.Parameter(p.GetType(), "x");
-        Expression expr = Expression.Property(arg, "Name");
-
-        var propertyResolver = Expression.Lambda(expr, arg).Compile();
-
-        for (int i = 0; i < N; i++)
-        {
-            sb.AppendLine(((Func<Person, object>)propertyResolver)(p).ToString());
-        }
-    }
-    
-    private static void CachedDelegateSet(Person p)
-    {
-        var arg = Expression.Parameter(typeof(Person));
-        Expression expr = Expression.Property(arg, "Name");
-        var get = Expression.Lambda<Func<Person, string>>(expr, arg);
-        var member = get.Body;
-        var param = Expression.Parameter(typeof(string), "value");
-        var setter = Expression
-            .Lambda<Action<Person, string>>(Expression.Assign(member, param), get.Parameters[0], param)
-            .Compile();
-
-        for (var i = 0; i < N; i++)
-        {
-            ((Action<Person, string>)setter)(p, "Bob" + i);
         }
     }
 
     [Benchmark]
-    public void RegularPropertyGet()
+    public string RegularPropertyGet()
     {
-        RegularPropertyGet(Person);
+        return _person.Name;
     }
 
     [Benchmark]
     public void RegularPropertySet()
     {
-        RegularPropertySet(Person);
+        _person.Name = "Bob";
     }
 
     [Benchmark]
-    public void ReflectionGet()
+    public string ReflectionGet()
     {
-        ReflectionGet(Person);
+        var person = _person;
+        var property = person.GetType().GetProperty(nameof(Person.Name));
+        return property.GetValue(person, null).ToString();
     }
 
     [Benchmark]
     public void ReflectionSet()
     {
-        ReflectionSet(Person);
+        var p = _person;
+        var property = p.GetType().GetProperty(nameof(Person.Name));
+        property?.SetValue(p, "Bob");
     }
 
     [Benchmark]
-    public void ReflectionWitchCachedPropertyInfoGet()
+    public string ReflectionWitchCachedPropertyInfoGet()
     {
-        ReflectionWitchCachedPropertyInfoGet(Person);
+        return _cachedProperty.GetValue(_person, null).ToString();
     }
 
     [Benchmark]
     public void ReflectionWitchCachedPropertyInfoSet()
     {
-        ReflectionWitchCachedPropertyInfoSet(Person);
+        _cachedProperty.SetValue(_person, "Bob");
     }
 
     [Benchmark]
-    public void CompiledExpressionGet()
+    public string CompiledExpressionGet()
     {
-        CompiledExpressionGet(Person);
+        var arg = Expression.Parameter(typeof(Person), "x");
+        Expression expr = Expression.Property(arg, nameof(Person.Name));
+        var getter = Expression.Lambda<Func<Person, object>>(expr, arg).Compile();
+
+        return getter(_person).ToString();
     }
 
     [Benchmark]
     public void CompiledExpressionSet()
     {
-        CompiledExpressionSet(Person);
+        var arg = Expression.Parameter(typeof(Person));
+        Expression expr = Expression.Property(arg, nameof(Person.Name));
+        var get = Expression.Lambda<Func<Person, string>>(expr, arg);
+        var member = get.Body;
+        var param = Expression.Parameter(typeof(string), "value");
+        var setter = Expression
+            .Lambda<Action<Person, string>>(Expression.Assign(member, param), get.Parameters[0], param)
+            .Compile();
+
+        setter(_person, "Bob");
     }
 
     [Benchmark]
-    public void CachedCompiledExpressionGet()
+    public string CachedCompiledExpressionGet()
     {
-        CachedCompiledExpressionGet(Person);
+        return _cachedExpressionGetter(_person).ToString();
     }
 
     [Benchmark]
     public void CachedCompiledExpressionSet()
     {
-        CachedCompiledExpressionSet(Person);
+        _cachedExpressionSetter(_person, "Bob");
     }
 
     [Benchmark]
-    public void DelegateGet()
+    public string DelegateGet()
     {
-        DelegateGet(Person);
+        var arg = Expression.Parameter(typeof(Person), "x");
+        Expression expr = Expression.Property(arg, nameof(Person.Name));
+        var propertyResolver = Expression.Lambda(expr, arg).Compile();
+
+        return ((Func<Person, object>) propertyResolver)(_person).ToString();
     }
 
+    // it is the same as CompiledExpressionSet =\
     [Benchmark]
     public void DelegateSet()
     {
-        DelegateSet(Person);
+        var arg = Expression.Parameter(typeof(Person));
+        Expression expr = Expression.Property(arg, nameof(Person.Name));
+        var get = Expression.Lambda<Func<Person, string>>(expr, arg);
+        var member = get.Body;
+        var param = Expression.Parameter(typeof(string), "value");
+        var setter = Expression
+            .Lambda<Action<Person, string>>(Expression.Assign(member, param), get.Parameters[0], param)
+            .Compile();
+
+        setter(_person, "Bob");
     }
 
     [Benchmark]
-    public void CachedDelegateGet()
+    public string CachedDelegateGet()
     {
-        CachedDelegateGet(Person);
+        return ((Func<Person, object>) _cachedDelegateGetter)(_person).ToString();
     }
-    
+
     [Benchmark]
     public void CachedDelegateSet()
     {
-        CachedDelegateSet(Person);
+        _cachedDelegateSetter(_person, "Bob");
     }
 }
 
