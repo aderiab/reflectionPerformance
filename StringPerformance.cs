@@ -8,7 +8,7 @@ using BenchmarkDotNet.Jobs;
 namespace ReflectionPerformance;
 
 [SimpleJob(RuntimeMoniker.Net48)]
-public class Performance
+public class StringPerformance
 {
     private Person _person;
     private PropertyInfo _cachedProperty;
@@ -16,14 +16,14 @@ public class Performance
     private Action<Person, string> _cachedExpressionSetter;
     private Delegate _cachedDelegateGetter;
     private Action<Person, string> _cachedDelegateSetter;
-    
+
     private Action<object, object?> _cachedSetter;
     private Func<object, object> _cachedGetter;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _person = new() { Name = "John" };
+        _person = new Person { Name = "John" };
         _cachedProperty = typeof(Person).GetProperty(nameof(Person.Name));
 
         {
@@ -75,11 +75,6 @@ public class Performance
             var typeOfResult = property.PropertyType;
             _cachedSetter = ReflectionHelper.Setter(declaringClass, typeOfResult, property.SetMethod);
         }
-    }
-
-    public void Configure()
-    {
-        
     }
 
     [Benchmark]
@@ -196,7 +191,7 @@ public class Performance
     {
         _cachedDelegateSetter(_person, "Bob");
     }
-    
+
     [Benchmark]
     public string ReflectionHelperGet()
     {
@@ -205,10 +200,10 @@ public class Performance
         var declaringClass = property.DeclaringType;
         var typeOfResult = property.PropertyType;
         var getter = ReflectionHelper.Getter(declaringClass, typeOfResult, property.GetMethod);
-        
+
         return getter(_person).ToString();
     }
-    
+
     [Benchmark]
     public void ReflectionHelperSet()
     {
@@ -217,16 +212,16 @@ public class Performance
         var declaringClass = property.DeclaringType;
         var typeOfResult = property.PropertyType;
         var setter = ReflectionHelper.Setter(declaringClass, typeOfResult, property.SetMethod);
-        
+
         setter(_person, "Bob");
     }
-    
+
     [Benchmark]
     public string CachedReflectionHelperGet()
     {
         return _cachedGetter(_person).ToString();
     }
-    
+
     [Benchmark]
     public void CachedReflectionHelperSet()
     {

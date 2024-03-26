@@ -16,14 +16,17 @@ public class DateTimePerformance
     private Action<Day, DateTime> _cachedExpressionSetter;
     private Delegate _cachedDelegateGetter;
     private Action<Day, DateTime> _cachedDelegateSetter;
-    
+
     private Action<object, object?> _cachedSetter;
     private Func<object, object> _cachedGetter;
+
+    private Action<Day, object?> _cachedExpressionTreeSetter;
+    private Func<Day, object> _cachedExpressionTreeGetter;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _day = new Day() { MyDate = new DateTime(2024, 3, 26, 14, 40, 44) };
+        _day = new Day { MyDate = new DateTime(2024, 3, 26, 14, 40, 44) };
         _cachedProperty = typeof(Day).GetProperty(nameof(Day.MyDate));
 
         {
@@ -75,6 +78,14 @@ public class DateTimePerformance
             var typeOfResult = property.PropertyType;
             _cachedSetter = ReflectionHelper.Setter(declaringClass, typeOfResult, property.SetMethod);
         }
+
+        {
+            _cachedExpressionTreeGetter = ExpressionHelper.GetterExpressionTree(_day);
+        }
+
+        {
+            _cachedExpressionTreeSetter = ExpressionHelper.SetterExpressionTree(_day);
+        }
     }
 
     [Benchmark]
@@ -102,7 +113,7 @@ public class DateTimePerformance
     {
         var p = _day;
         var property = p.GetType().GetProperty(nameof(Day.MyDate));
-        property?.SetValue(p, new DateTime(2022, 3,4,5,6,7,8));
+        property?.SetValue(p, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
 
     [Benchmark]
@@ -114,7 +125,7 @@ public class DateTimePerformance
     [Benchmark]
     public void ReflectionWitchCachedPropertyInfoSet()
     {
-        _cachedProperty.SetValue(_day, new DateTime(2022, 3,4,5,6,7,8));
+        _cachedProperty.SetValue(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
 
     [Benchmark]
@@ -139,7 +150,7 @@ public class DateTimePerformance
             .Lambda<Action<Day, DateTime>>(Expression.Assign(member, param), get.Parameters[0], param)
             .Compile();
 
-        setter(_day, new DateTime(2022, 3,4,5,6,7,8));
+        setter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
 
     [Benchmark]
@@ -151,7 +162,7 @@ public class DateTimePerformance
     [Benchmark]
     public void CachedCompiledExpressionSet()
     {
-        _cachedExpressionSetter(_day, new DateTime(2022, 3,4,5,6,7,8));
+        _cachedExpressionSetter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
 
     [Benchmark]
@@ -177,7 +188,7 @@ public class DateTimePerformance
             .Lambda<Action<Day, DateTime>>(Expression.Assign(member, param), get.Parameters[0], param)
             .Compile();
 
-        setter(_day, new DateTime(2022, 3,4,5,6,7,8));
+        setter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
 
     [Benchmark]
@@ -189,9 +200,9 @@ public class DateTimePerformance
     [Benchmark]
     public void CachedDelegateSet()
     {
-        _cachedDelegateSetter(_day, new DateTime(2022, 3,4,5,6,7,8));
+        _cachedDelegateSetter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
-    
+
     [Benchmark]
     public object ReflectionHelperGet()
     {
@@ -200,10 +211,10 @@ public class DateTimePerformance
         var declaringClass = property.DeclaringType;
         var typeOfResult = property.PropertyType;
         var getter = ReflectionHelper.Getter(declaringClass, typeOfResult, property.GetMethod);
-        
+
         return getter(_day);
     }
-    
+
     [Benchmark]
     public void ReflectionHelperSet()
     {
@@ -212,19 +223,83 @@ public class DateTimePerformance
         var declaringClass = property.DeclaringType;
         var typeOfResult = property.PropertyType;
         var setter = ReflectionHelper.Setter(declaringClass, typeOfResult, property.SetMethod);
-        
-        setter(_day, new DateTime(2022, 3,4,5,6,7,8));
+
+        setter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
-    
+
     [Benchmark]
     public object CachedReflectionHelperGet()
     {
         return _cachedGetter(_day);
     }
-    
+
     [Benchmark]
     public void CachedReflectionHelperSet()
     {
-        _cachedSetter(_day, new DateTime(2022, 3,4,5,6,7,8));
+        _cachedSetter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
+    }
+
+    [Benchmark]
+    public object ExpressionHelperGet()
+    {
+        var property = typeof(Day).GetProperties().FirstOrDefault();
+        var eventLogCustomType = property.DeclaringType;
+
+        var instance = Expression.Parameter(typeof(Day));
+
+        Func<Day, object> getter = null;
+        var getMethod = property.GetGetMethod();
+        if (getMethod != null)
+        {
+            getter =
+                Expression.Lambda<Func<Day, object>>(
+                        Expression.Convert(
+                            Expression.Call(
+                                Expression.Convert(instance, eventLogCustomType),
+                                getMethod),
+                            typeof(object)),
+                        instance)
+                    .Compile();
+        }
+
+        return getter(_day);
+    }
+
+    [Benchmark]
+    public void ExpressionHelperSet()
+    {
+        var property = typeof(Day).GetProperties().FirstOrDefault();
+        var eventLogCustomType = property.DeclaringType;
+        var propertyType = property.PropertyType;
+
+        var instance = Expression.Parameter(typeof(Day));
+        Action<Day, object> setter = null;
+        var setMethod = property.GetSetMethod();
+        if (setMethod != null)
+        {
+            var parameter = Expression.Parameter(typeof(object));
+            setter =
+                Expression.Lambda<Action<Day, object>>(
+                        Expression.Call(
+                            Expression.Convert(instance, eventLogCustomType),
+                            setMethod,
+                            Expression.Convert(parameter, propertyType)),
+                        instance, parameter)
+                    .Compile();
+        }
+
+        setter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
+    }
+
+    [Benchmark]
+    public object CachedExpressionHelperGet()
+    {
+        return _cachedExpressionTreeGetter(_day);
+    }
+
+    [Benchmark]
+    public void CachedExpressionHelperSet()
+    {
+        _cachedExpressionTreeSetter(_day, new DateTime(2022, 3, 4, 5, 6, 7, 8));
     }
 }
