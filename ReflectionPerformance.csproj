@@ -159,6 +159,11 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="AttributesUtil.cs" />
+        <Compile Include="CachedProperty.cs" />
+        <Compile Include="ReflectionHelper.cs" />
+        <Compile Include="Performance.cs" />
+        <Compile Include="Person.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
