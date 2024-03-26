@@ -77,6 +77,11 @@ public class Performance
         }
     }
 
+    public void Configure()
+    {
+        
+    }
+
     [Benchmark]
     public string RegularPropertyGet()
     {

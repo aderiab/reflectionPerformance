@@ -1,4 +1,5 @@
-﻿using BenchmarkDotNet.Running;
+﻿using System;
+using BenchmarkDotNet.Running;
 
 namespace ReflectionPerformance;
 
@@ -6,6 +7,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var summary = BenchmarkRunner.Run<Performance>();
+        var summary = BenchmarkRunner.Run<DateTimePerformance>();
     }
 }

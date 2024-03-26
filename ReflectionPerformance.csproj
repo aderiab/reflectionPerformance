@@ -161,6 +161,8 @@
     <ItemGroup>
         <Compile Include="AttributesUtil.cs" />
         <Compile Include="CachedProperty.cs" />
+        <Compile Include="DateTimePerformance.cs" />
+        <Compile Include="Day.cs" />
         <Compile Include="ReflectionHelper.cs" />
         <Compile Include="Performance.cs" />
         <Compile Include="Person.cs" />
