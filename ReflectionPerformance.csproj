@@ -159,10 +159,12 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="AttributePerformance.cs" />
         <Compile Include="CachedProperty.cs"/>
         <Compile Include="DateTimePerformance.cs"/>
         <Compile Include="Day.cs"/>
         <Compile Include="ExpressionHelper.cs"/>
+        <Compile Include="IgnoreDateTimeTranslationAttribute.cs" />
         <Compile Include="ReflectionHelper.cs"/>
         <Compile Include="StringPerformance.cs"/>
         <Compile Include="Person.cs"/>

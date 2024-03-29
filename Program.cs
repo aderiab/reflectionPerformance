@@ -6,6 +6,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var summary = BenchmarkRunner.Run<DateTimePerformance>();
+        var summary = BenchmarkRunner.Run<AttributePerformance>();
     }
 }
