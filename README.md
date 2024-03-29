@@ -22,3 +22,5 @@
 | ExpressionHelperSet                  | 67,085.1294 ns | 362.4412 ns | 339.0277 ns |
 | CachedExpressionHelperGet            |     12.5629 ns |   0.0577 ns |   0.0540 ns |
 | CachedExpressionHelperSet            |     29.0885 ns |   0.1023 ns |   0.0907 ns |
+| GetAttributes       | 1,790.9765 ns | 6.4815 ns | 5.4124 ns | 1,789.6709 ns |
+| GetAttributesCached |     0.0477 ns | 0.0554 ns | 0.0569 ns |     0.0093 ns |
